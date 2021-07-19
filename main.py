@@ -1,5 +1,6 @@
 import matplotlib.image as img
 import numpy as np
+import os
 
 # weight matricies
 w1 = np.ones((16,784)) # (neurons in first hidden layer, neurons in input layer)
@@ -10,6 +11,43 @@ w3 = np.ones((10,16))  # (neurons in output, neurons in second hidden layer)
 b1 = np.ones((16,1)) # neurons in first hidden layer
 b2 = np.ones((16,1)) # neurons in second hidden layer
 b3 = np.ones((10,1)) # neurons in output layer
+
+# input is the root folder to traverse
+# returns an array of tuples of (
+def traverseFolder(rootFolder):
+    data = []
+    for dirName, subdirList, fileList in os.walk(rootFolder):
+        for fname in fileList:
+            data.append((dirName[-1], dirName + '/' + fname))
+    return data
+
+# input is training data from traverseFolder
+# returns tuple of (b1, b2, b3, w1, w2, w3)
+def trainNetwork(trains):
+    curr = 0
+    length = len(trains)
+    for i in trains:
+        print('Training: \%' + 100*curr/length)
+        im = readData(i[1])
+        res = calcFromNet(im)
+        expect = np.zeros((10,1))
+        expect[int(i[0])] = 1
+        b1, b2, b3, w1, w2, w3 = backprop(res, expect, im)
+        curr += 1
+    return (b1, b2, b3, w1, w2, w3)
+
+def testNetwork(tests):
+    curr = 0
+    length = len(tests)
+    errors = 0
+    for i in tests:
+        print('Testing: %' + str(100*curr/length))
+        im = readData(i[1])
+        res = calcFromNet(im)
+        guess = np.where(res[2] == np.argmax(res[2]))
+        if(guess != int(i[0])):
+            print("Error", guess, i[0])
+
 
 def readData(imPath = 'dataset/test/0/1001.png'):
     # im is a 1d array that is the image from left to right then top to bottom
@@ -36,12 +74,13 @@ def calcFromNet(image):
     a3 = sigmoid(z3)
     return (a1, a2, a3)
 
-# input is the return from calcFromNet
+# input is the return from calcFromNet, the expected output, and the original input
 # adjusts all weight and bias values
 def backprop(results, expected, inp):
     del3 = (results[2] - expected) * sigmoidPrime(results[2])
     del2 = np.matmul(w3.transpose(), del3) * sigmoidPrime(results[1])
     del1 = np.matmul(w2.transpose(), del2) * sigmoidPrime(results[0])
+    # TODO: reduce loops done in python
     # adjust weights
     # adjust w3
     newW3 = np.ones((10,16))
@@ -61,6 +100,11 @@ def backprop(results, expected, inp):
     # adjust bias
     return (b1 - del1, b2 - del2, b3 - del3, newW1, newW2, newW3)
 
+testData = traverseFolder('dataset/test')
+trainData = traverseFolder('dataset/training')
+#print(trainNetwork(trainData))
+testNetwork(testData)
+'''
 im = readData()
 res = calcFromNet(im)
 print(res[2])
@@ -71,3 +115,4 @@ for i in range(1000):
     b1, b2, b3, w1, w2, w3 = backprop(res, expect, im)
     res = calcFromNet(im)
 print(res[2])
+'''
