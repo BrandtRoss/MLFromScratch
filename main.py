@@ -23,7 +23,7 @@ def sigmoid(arr):
 # input is array with sigmoid applied
 # returns derivative of sigmoid for all values in array
 def sigmoidPrime(arr):
-    return arr * (np.ones((arr.size,1)) - arr)
+    return sigmoid(arr) * (np.ones((arr.size,1)) - sigmoid(arr))
 
 # calculates the neural net
 # returns a tuple of the activations for each layer
@@ -38,24 +38,36 @@ def calcFromNet(image):
 
 # input is the return from calcFromNet
 # adjusts all weight and bias values
-def backprop(results, expected):
+def backprop(results, expected, inp):
     del3 = (results[2] - expected) * sigmoidPrime(results[2])
     del2 = np.matmul(w3.transpose(), del3) * sigmoidPrime(results[1])
     del1 = np.matmul(w2.transpose(), del2) * sigmoidPrime(results[0])
+    # adjust weights
+    # adjust w3
+    newW3 = np.ones((10,16))
+    for j in range(10): # output layer
+        for k in range(16): # second hidden layer
+            newW3[j][k] = w3[j][k] - results[1][k] * del3[j]
+    # adjust w2
+    newW2 = np.ones((16,16))
+    for j in range(16): # 
+        for k in range(16): # 
+            newW2[j][k] = w2[j][k] - results[0][k] * del2[j]
+    # adjust w1
+    newW1 = np.ones((16,784))
+    for j in range(16): # 
+        for k in range(784): # 
+            newW1[j][k] = w1[j][k] - inp[k] * del1[j]
     # adjust bias
-    return (b1 + del1, b2 + del2, b3 + del3)
-    # adjust weight
+    return (b1 - del1, b2 - del2, b3 - del3, newW1, newW2, newW3)
 
 im = readData()
 res = calcFromNet(im)
 print(res[2])
 expect = np.zeros((10,1))
 expect[0] = 1
-b1, b2, b3 = backprop(res, expect)
-print(b3)
-res = calcFromNet(im)
+for i in range(1000):
+    print(100*i/1000)
+    b1, b2, b3, w1, w2, w3 = backprop(res, expect, im)
+    res = calcFromNet(im)
 print(res[2])
-
-x = np.array([1,2,3])
-y = np.array([1,2,3])
-a = np.array([[1,2,3], [4,5,6]])
