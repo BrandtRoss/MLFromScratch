@@ -1,6 +1,7 @@
 import matplotlib.image as img
 import numpy as np
 import os
+import random
 
 # weight matricies
 w1 = np.ones((16,784)) # (neurons in first hidden layer, neurons in input layer)
@@ -19,6 +20,7 @@ def traverseFolder(rootFolder):
     for dirName, subdirList, fileList in os.walk(rootFolder):
         for fname in fileList:
             data.append((dirName[-1], dirName + '/' + fname))
+    random.shuffle(data)
     return data
 
 # input is training data from traverseFolder
@@ -27,27 +29,31 @@ def trainNetwork(trains):
     curr = 0
     length = len(trains)
     for i in trains:
-        print('Training: \%' + 100*curr/length)
+        print('Training: %' + str(100*curr/length))
         im = readData(i[1])
         res = calcFromNet(im)
         expect = np.zeros((10,1))
         expect[int(i[0])] = 1
         b1, b2, b3, w1, w2, w3 = backprop(res, expect, im)
         curr += 1
+        del res
     return (b1, b2, b3, w1, w2, w3)
 
 def testNetwork(tests):
     curr = 0
     length = len(tests)
-    errors = 0
+    errors = [0,0,0,0,0,0,0,0,0,0]
+    guesses = [0,0,0,0,0,0,0,0,0,0]
     for i in tests:
-        print('Testing: %' + str(100*curr/length))
         im = readData(i[1])
         res = calcFromNet(im)
-        guess = np.where(res[2] == np.argmax(res[2]))
+        guess = np.argmax(res[2])
+        print(guess, res[2])
+        guesses[guess] += 1
         if(guess != int(i[0])):
-            print("Error", guess, i[0])
-
+            errors[int(i[0])] += 1
+    print(guesses)
+    print(errors)
 
 def readData(imPath = 'dataset/test/0/1001.png'):
     # im is a 1d array that is the image from left to right then top to bottom
@@ -86,33 +92,30 @@ def backprop(results, expected, inp):
     newW3 = np.ones((10,16))
     for j in range(10): # output layer
         for k in range(16): # second hidden layer
-            newW3[j][k] = w3[j][k] - results[1][k] * del3[j]
+            newW3[j][k] = w3[j][k] + results[1][k] * del3[j]
     # adjust w2
     newW2 = np.ones((16,16))
     for j in range(16): # 
         for k in range(16): # 
-            newW2[j][k] = w2[j][k] - results[0][k] * del2[j]
+            newW2[j][k] = w2[j][k] + results[0][k] * del2[j]
     # adjust w1
     newW1 = np.ones((16,784))
     for j in range(16): # 
         for k in range(784): # 
-            newW1[j][k] = w1[j][k] - inp[k] * del1[j]
+            newW1[j][k] = w1[j][k] + inp[k] * del1[j]
     # adjust bias
-    return (b1 - del1, b2 - del2, b3 - del3, newW1, newW2, newW3)
+    return (b1 + del1, b2 + del2, b3 + del3, newW1, newW2, newW3)
 
 testData = traverseFolder('dataset/test')
 trainData = traverseFolder('dataset/training')
-#print(trainNetwork(trainData))
+x = trainNetwork(trainData)
+b1, b2, b3, w1, w2, w3 = x
 testNetwork(testData)
-'''
-im = readData()
-res = calcFromNet(im)
-print(res[2])
-expect = np.zeros((10,1))
-expect[0] = 1
-for i in range(1000):
-    print(100*i/1000)
-    b1, b2, b3, w1, w2, w3 = backprop(res, expect, im)
-    res = calcFromNet(im)
-print(res[2])
-'''
+print(trainData[0], trainData[-1])
+print(testData[0], testData[-1])
+print('b1',b1)
+print('b2',b2)
+print('b3',b3)
+print('w1',w1)
+print('w2',w2)
+print('w3',w3)
