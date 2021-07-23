@@ -93,7 +93,6 @@ def backprop(results, expected, inp, matricies):
     newW2 = w2 - np.transpose(np.repeat(results[0], 16, axis=1)) * np.repeat(del2, 16, axis=1)
     newW1 = w1 - np.transpose(np.repeat(inp, 16, axis=1)) * np.repeat(del1, 784, axis=1)
     # adjust bias
-    # TODO: I think the del calculations aren't right
     return (b1 - del1, b2 - del2, b3 - del3, newW1, newW2, newW3)
 
 testData = traverseFolder('dataset/test')
