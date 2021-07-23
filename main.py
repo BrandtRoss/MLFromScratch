@@ -2,6 +2,7 @@ import matplotlib.image as img
 import numpy as np
 import os
 import random
+from tqdm import tqdm
 
 # input is the root folder to traverse
 # returns an array of tuples of (
@@ -15,7 +16,7 @@ def traverseFolder(rootFolder):
 
 # input is training data from traverseFolder
 # returns tuple of (b1, b2, b3, w1, w2, w3)
-def trainNetwork(trains):
+def trainNetwork(trains, repeats):
     # define weight and bias matricies
     # weight matricies
     w1 = np.random.rand(16,784) # (neurons in first hidden layer, neurons in input layer)
@@ -27,36 +28,32 @@ def trainNetwork(trains):
     b2 = np.random.rand(16,1) # neurons in second hidden layer
     b3 = np.random.rand(10,1) # neurons in output layer
 
-    curr = 0
-    length = len(trains)
-    for i in trains:
-        print('Training: %' + str(100*curr/length))
+    for i in tqdm(trains):
         im = readData(i[1])
-        for j in range(30):
+        for j in range(repeats):
             res = calcFromNet(im, (b1, b2, b3, w1, w2, w3))
             expect = np.zeros((10,1))
             expect[int(i[0])] = 1
             b1, b2, b3, w1, w2, w3 = backprop(res, expect, im, (b1, b2, b3, w1, w2, w3))
             del res
-        curr += 1
         #break
     return (b1, b2, b3, w1, w2, w3)
 
 def testNetwork(tests, matricies):
     curr = 0
     length = len(tests)
-    errors = [0,0,0,0,0,0,0,0,0,0]
-    guesses = [0,0,0,0,0,0,0,0,0,0]
+    errors = np.array([0,0,0,0,0,0,0,0,0,0])
+    guesses = np.array([0,0,0,0,0,0,0,0,0,0])
     for i in tests:
         im = readData(i[1])
         res = calcFromNet(im, (b1, b2, b3, w1, w2, w3))
         guess = np.argmax(res[2])
-        print(guess, res[2])
         guesses[guess] += 1
         if(guess != int(i[0])):
             errors[int(i[0])] += 1
-    print(guesses)
-    print(errors)
+    print("Guess distribution:", guesses)
+    print("There were", np.sum(errors), "errors with the following distribution:", errors)
+    return np.sum(errors)
 
 def readData(imPath = 'dataset/test/0/1001.png'):
     # im is a 1d array that is the image from left to right then top to bottom
@@ -92,11 +89,8 @@ def backprop(results, expected, inp, matricies):
     del2 = np.matmul(w3.transpose(), del3) * sigmoidPrime(results[1])
     del1 = np.matmul(w2.transpose(), del2) * sigmoidPrime(results[0])
     # adjust weights
-    # adjust w3
     newW3 = w3 - np.transpose(np.repeat(results[1], 10, axis=1)) * np.repeat(del3, 16, axis=1)
-    # adjust w2
     newW2 = w2 - np.transpose(np.repeat(results[0], 16, axis=1)) * np.repeat(del2, 16, axis=1)
-    # adjust w1
     newW1 = w1 - np.transpose(np.repeat(inp, 16, axis=1)) * np.repeat(del1, 784, axis=1)
     # adjust bias
     # TODO: I think the del calculations aren't right
@@ -104,14 +98,16 @@ def backprop(results, expected, inp, matricies):
 
 testData = traverseFolder('dataset/test')
 trainData = traverseFolder('dataset/training')
-x = trainNetwork(trainData)
-b1, b2, b3, w1, w2, w3 = x
-testNetwork(testData, x)
-'''
-print('b1',b1)
-print('b2',b2)
-print('b3',b3)
-print('w1',w1)
-print('w2',w2)
-print('w3',w3)
-'''
+
+best = 0
+
+for i in range(20):
+    print("Running with 10 repeat in training")
+    x = trainNetwork(trainData, 1)
+    b1, b2, b3, w1, w2, w3 = x
+    y = testNetwork(testData, x)
+    if(best == 0 or best > y):
+        best = y
+    print()
+
+print("Lowest errors was", best)
